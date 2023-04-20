@@ -12,6 +12,10 @@ pub struct memory {
 }
 
 impl memory {
+    pub fn Init() -> Self {
+        memory {ram: [0x0000; 2048], rom: [0x000; 49120]}
+    }
+
     pub fn write(&self, addr: u16, val: u8) {
         if addr >= 0x0000 && addr <= 0x07FF {
             self.ram[addr] = val;

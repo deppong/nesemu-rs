@@ -5,6 +5,10 @@
     that operated with the 6502
 */
 
+use memory::*;
+pub mod memory;
+
+/*
 enum StatusFlag {
     const carry     = 0b00000001;
     const zero      = 0b00000010;
@@ -15,6 +19,7 @@ enum StatusFlag {
     const overflow  = 0b01000000;
     const negative  = 0b10000000;
 }
+*/
 
 pub struct cpu {
     // registers
@@ -24,12 +29,15 @@ pub struct cpu {
     pub sp: u8      // Stack pointer
     pub pc: u16,    // program counter
     pub p: u8,  // Status Register
+
+    // sys memory
+    pub mem: memory,
 }
 
 impl cpu {
-    fn Init() -> Self {
+   pub fn Init() -> Self {
         cpu {
-        a: 0, x: 0, y: 0, sp: 0, pc: 0, p: 0
+a: 0, x: 0, y: 0, sp: 0, pc: 0, p: 0, mem: memory::Init(),
         }
     }
 }

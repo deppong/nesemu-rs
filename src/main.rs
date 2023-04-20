@@ -3,5 +3,5 @@ pub mod cpu;
 
 fn main() {
     let m_cpu = cpu::Init();
-    println!("Hello, world!");
+    println!("{}", m_cpu.x);
 }
