@@ -52,7 +52,19 @@ impl Cpu {
     pub fn exec_op(&mut self, op: u8) -> u16{
         // let addr: u16 = 0x0000;
         // address modes
-        let addr: u16 = match op {
+
+        let addr = self.get_addr_mode(op);
+
+        match op {
+            0x00 => self.brk(),
+            0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => self.ora(addr),
+            _ => () 
+        }
+        addr
+    }
+
+    fn get_addr_mode(&mut self, op: u8) -> u16 {
+        let addr = match op {
             0x10 | 0x30 | 0x50 | 0x70 | 0x90 | 0xB0 | 0xD0 | 0xF0   => self.rel_addr(),
             0x01 | 0x21 | 0x41 | 0x61 | 0x81 | 0xA1 | 0xC1 | 0xE1   => self.inx_addr(),
             0x11 | 0x31 | 0x51 | 0x71 | 0x91 | 0xB1 | 0xD1 | 0xF1   => self.iny_addr(),
@@ -82,24 +94,21 @@ impl Cpu {
  
             _ => 0x0000, // rest of the opcodes have implied operands (none or the accumulator)
         };
-
-
-        match op {
-            0x00 => self.brk(),
-            0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => self.ora(addr),
-            _ => () 
-        }
-        addr
+       addr 
     }
- 
 
     // addressing modes
-    pub fn imm_addr(&self) -> u16{ 1 }
+    pub fn imm_addr(&mut self) -> u16{ self.pc+=1; return self.mem.read(self.pc) as u16; }
     pub fn zpg_addr(&self) -> u16{ 2 }
     pub fn zpx_addr(&self) -> u16{ 3 }
     pub fn zpy_addr(&self) -> u16{ 4 }
     pub fn rel_addr(&self) -> u16{ 5 }
-    pub fn abs_addr(&self) -> u16{ 6 }
+    pub fn abs_addr(&mut self) -> u16 { 
+        self.pc+=2;
+        // pull the data at the little-endian address 
+        let absolute_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
+        return self.mem.read(absolute_address) as u16;
+    }
     pub fn abx_addr(&self) -> u16{ 7 }
     pub fn aby_addr(&self) -> u16{ 8 }
     pub fn ind_addr(&self) -> u16{ 9 }
@@ -109,47 +118,48 @@ impl Cpu {
     
     // Opcode Implementations -----
     // transfer instructions
-    pub fn lda(&self){}
-    pub fn ldx(&self){}
-    pub fn ldy(&self){}
-    pub fn sta(&self){}
-    pub fn stx(&self){}
-    pub fn sty(&self){}
-    pub fn tax(&self){}
-    pub fn tay(&self){}
-    pub fn tsx(&self){}
-    pub fn txa(&self){}
-    pub fn txs(&self){}
-    pub fn tya(&self){}
+    pub fn lda(&mut self, data: u8) { self.a = data; /*update status flag N, and Z */ }
+    pub fn ldx(&mut self, data: u8) { self.x = data; /*update status flag N, and Z */ }
+    pub fn ldy(&mut self, data: u8) { self.y = data; /*update status flag N, and Z */ }
+    pub fn sta(&mut self, data: u16) { self.mem.write(data, self.a); }
+    pub fn stx(&mut self, data: u8) {}
+    pub fn sty(&mut self, data: u8) {}
+    pub fn tax(&mut self, data: u8) {}
+    pub fn tay(&mut self, data: u8) {}
+    pub fn tsx(&mut self, data: u8) {}
+    pub fn txa(&mut self, data: u8) {}
+    pub fn txs(&mut self, data: u8) {}
+    pub fn tya(&mut self, data: u8) {}
 
     // stack instructions
-    pub fn pha(&self){}
-    pub fn php(&self){}
-    pub fn pla(&self){}
-    pub fn plp(&self){}
+    pub fn pha(&mut self){}
+    pub fn php(&mut self){}
+    pub fn pla(&mut self){}
+    pub fn plp(&mut self){}
+
 
     // decrement and increment
-    pub fn dec(&self){}
-    pub fn dex(&self){}
-    pub fn dey(&self){}
-    pub fn inc(&self){}
-    pub fn inx(&self){}
-    pub fn iny(&self){}
+    pub fn dec(&mut self){}
+    pub fn dex(&mut self){}
+    pub fn dey(&mut self){}
+    pub fn inc(&mut self){}
+    pub fn inx(&mut self){}
+    pub fn iny(&mut self){}
 
     // arithmetic operations
-    pub fn adc(&self){}
-    pub fn sbc(&self){}
+    pub fn adc(&mut self){}
+    pub fn sbc(&mut self){}
 
     // logical operators
-    pub fn and(&self){}
-    pub fn eor(&self){}
-    pub fn ora(&self, addr: u16){}
+    pub fn and(&mut self){}
+    pub fn eor(&mut self){}
+    pub fn ora(&mut self, addr: u16){}
 
     // shift and rotate
-    pub fn asl(&self){}
-    pub fn lsr(&self){}
-    pub fn rol(&self){}
-    pub fn ror(&self){}
+    pub fn asl(&mut self){}
+    pub fn lsr(&mut self){}
+    pub fn rol(&mut self){}
+    pub fn ror(&mut self){}
 
     // flags
     // these are all 2 ticks! 
@@ -162,9 +172,9 @@ impl Cpu {
     pub fn sei(&mut self) { self.p |= INTERRUPT_FLAG; }
 
     // comparison
-    pub fn cmp(&self){}
-    pub fn cpx(&self){}
-    pub fn cpy(&self){}
+    pub fn cmp(&mut self){}
+    pub fn cpx(&mut self){}
+    pub fn cpy(&mut self){}
 
     // branching
     pub fn bcc(&self){}
