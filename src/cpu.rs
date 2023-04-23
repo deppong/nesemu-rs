@@ -98,22 +98,32 @@ impl Cpu {
     }
 
     // addressing modes
-    pub fn imm_addr(&mut self) -> u16{ self.pc+=1; return self.mem.read(self.pc) as u16; }
-    pub fn zpg_addr(&self) -> u16{ 2 }
-    pub fn zpx_addr(&self) -> u16{ 3 }
-    pub fn zpy_addr(&self) -> u16{ 4 }
-    pub fn rel_addr(&self) -> u16{ 5 }
+    pub fn imm_addr(&mut self) -> u16{ self.pc += 1; return self.mem.read(self.pc) as u16; }
+    pub fn zpg_addr(&mut self) -> u16{ self.pc += 1; return self.mem.read(self.pc) as u16; }
+    pub fn zpx_addr(&mut self) -> u16{ self.pc += 1; return self.mem.read(self.pc + self.x as u16) as u16; }
+    pub fn zpy_addr(&mut self) -> u16{ self.pc += 1; return self.mem.read(self.pc + self.y as u16) as u16;  }
+    pub fn rel_addr(&mut self) -> u16{ self.pc += 2; return self.mem.read(self.pc-1) as u16 + self.pc; }
     pub fn abs_addr(&mut self) -> u16 { 
         self.pc+=2;
         // pull the data at the little-endian address 
         let absolute_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
         return self.mem.read(absolute_address) as u16;
     }
-    pub fn abx_addr(&self) -> u16{ 7 }
-    pub fn aby_addr(&self) -> u16{ 8 }
-    pub fn ind_addr(&self) -> u16{ 9 }
-    pub fn inx_addr(&self) -> u16{ 10 }
-    pub fn iny_addr(&self) -> u16{ 11 }
+    pub fn abx_addr(&mut self) -> u16 { 
+        self.pc+=2;
+        let absolute_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
+        return self.mem.read(absolute_address + self.x as u16) as u16;
+    }
+    pub fn aby_addr(&mut self) -> u16 {
+        self.pc+=2;
+        let absolute_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
+        return self.mem.read(absolute_address + self.y as u16) as u16;
+    }
+    pub fn ind_addr(&mut self) -> u16 { 
+        9
+    }
+    pub fn inx_addr(&mut self) -> u16 { 10 }
+    pub fn iny_addr(&mut self) -> u16 { 11 }
     
     
     // Opcode Implementations -----
@@ -147,13 +157,13 @@ impl Cpu {
     pub fn iny(&mut self){ self.y += 1; }
 
     // arithmetic operations
-    pub fn adc(&mut self){}
-    pub fn sbc(&mut self){}
+    pub fn adc(&mut self){} // NZCV
+    pub fn sbc(&mut self){} // NZCV
 
     // logical operators
-    pub fn and(&mut self, addr: u8) { self.a &= addr; }
-    pub fn eor(&mut self, addr: u8) { self.a ^= addr; }
-    pub fn ora(&mut self, addr: u8) { self.a |= addr; }
+    pub fn and(&mut self, addr: u8) { self.a &= addr; } // NZ
+    pub fn eor(&mut self, addr: u8) { self.a ^= addr; } // NZ
+    pub fn ora(&mut self, addr: u8) { self.a |= addr; } // NZ
 
     // shift and rotate
     pub fn asl(&mut self){}
