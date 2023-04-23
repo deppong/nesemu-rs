@@ -27,6 +27,8 @@ const DECIMAL_FLAG: u8      = 0b00001000;
 const OVERFLOW_FLAG: u8     = 0b01000000;
 const NEGATIVE_FLAG: u8     = 0b10000000;
 
+const STACK_HI_ADDR: u16 = 0x0100;
+
 pub struct Cpu {
     // registers
     pub a: u8,      // Accumulator
@@ -43,21 +45,19 @@ pub struct Cpu {
 impl Cpu {
    pub fn init() -> Self {
         Cpu {
-            a: 0, x: 0, y: 0, sp: 0, pc: 0, p: 0, mem: CpuMemory::init(),
+            a: 0, x: 0, y: 0, sp: 0x00, pc: 0, p: 0, mem: CpuMemory::init(),
         }
     }
 
     // invaluable resource:
     // https://www.masswerk.at/6502/6502_instruction_set.html
     pub fn exec_op(&mut self, op: u8) -> u16{
-        // let addr: u16 = 0x0000;
-        // address modes
 
         let addr = self.get_addr_mode(op);
 
         match op {
             0x00 => self.brk(),
-            0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => self.ora(addr),
+            0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => self.ora(addr as u8),
             _ => () 
         }
         addr
@@ -122,38 +122,38 @@ impl Cpu {
     pub fn ldx(&mut self, data: u8) { self.x = data; /*update status flag N, and Z */ }
     pub fn ldy(&mut self, data: u8) { self.y = data; /*update status flag N, and Z */ }
     pub fn sta(&mut self, data: u16) { self.mem.write(data, self.a); }
-    pub fn stx(&mut self, data: u8) {}
-    pub fn sty(&mut self, data: u8) {}
-    pub fn tax(&mut self, data: u8) {}
-    pub fn tay(&mut self, data: u8) {}
-    pub fn tsx(&mut self, data: u8) {}
-    pub fn txa(&mut self, data: u8) {}
-    pub fn txs(&mut self, data: u8) {}
-    pub fn tya(&mut self, data: u8) {}
+    pub fn stx(&mut self, data: u16) { self.mem.write(data, self.x); }
+    pub fn sty(&mut self, data: u16) { self.mem.write(data, self.y); }
+    pub fn tax(&mut self) { self.x = self.a; }      // update NZ
+    pub fn tay(&mut self) { self.y = self.a; }      // ""
+    pub fn tsx(&mut self) { self.sp = self.a; }     // ""
+    pub fn txa(&mut self) { self.a = self.x; }      // ""
+    pub fn txs(&mut self) { self.sp = self.x; }     // nah
+    pub fn tya(&mut self) { self.y = self.x; }      // ""
 
     // stack instructions
-    pub fn pha(&mut self){}
-    pub fn php(&mut self){}
-    pub fn pla(&mut self){}
-    pub fn plp(&mut self){}
+    pub fn pha(&mut self){ self.mem.write(STACK_HI_ADDR & self.sp as u16, self.a); self.sp+=1;}
+    pub fn php(&mut self){ self.mem.write(STACK_HI_ADDR & self.sp as u16, self.p); self.sp+=1;} 
+    pub fn pla(&mut self){ self.a = self.mem.read(STACK_HI_ADDR & self.sp as u16); self.sp-=1;}
+    pub fn plp(&mut self){ self.a = self.mem.read(STACK_HI_ADDR & self.sp as u16); self.sp-=1;}
 
 
     // decrement and increment
-    pub fn dec(&mut self){}
-    pub fn dex(&mut self){}
-    pub fn dey(&mut self){}
-    pub fn inc(&mut self){}
-    pub fn inx(&mut self){}
-    pub fn iny(&mut self){}
+    pub fn dec(&mut self){ self.a -= 1; }
+    pub fn dex(&mut self){ self.x -= 1; }
+    pub fn dey(&mut self){ self.y -= 1; }
+    pub fn inc(&mut self){ self.a += 1; }
+    pub fn inx(&mut self){ self.x += 1; }
+    pub fn iny(&mut self){ self.y += 1; }
 
     // arithmetic operations
     pub fn adc(&mut self){}
     pub fn sbc(&mut self){}
 
     // logical operators
-    pub fn and(&mut self){}
-    pub fn eor(&mut self){}
-    pub fn ora(&mut self, addr: u16){}
+    pub fn and(&mut self, addr: u8) { self.a &= addr; }
+    pub fn eor(&mut self, addr: u8) { self.a ^= addr; }
+    pub fn ora(&mut self, addr: u8) { self.a |= addr; }
 
     // shift and rotate
     pub fn asl(&mut self){}
