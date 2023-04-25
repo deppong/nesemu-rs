@@ -105,41 +105,58 @@ impl Cpu {
     pub fn rel_addr(&mut self) -> u16{ self.pc += 2; return self.mem.read(self.pc-1) as u16 + self.pc; }
     pub fn abs_addr(&mut self) -> u16 { 
         self.pc+=2;
-        // pull the data at the little-endian address 
-        let absolute_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
-        return self.mem.read(absolute_address) as u16;
+        // add 2 from the opcode!
+        // |op| |LL| |HH|
+        //             ^
+        //      pc-1   pc
+        // return the full data in little endian but we convert it to big-endian
+        return (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
     }
     pub fn abx_addr(&mut self) -> u16 { 
         self.pc+=2;
         let absolute_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
-        return self.mem.read(absolute_address + self.x as u16) as u16;
+        // same as above, but it's offeset by the x register
+        return absolute_address + self.x as u16;
     }
     pub fn aby_addr(&mut self) -> u16 {
         self.pc+=2;
         let absolute_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
-        return self.mem.read(absolute_address + self.y as u16) as u16;
+        // same as above, but it's offeset by the y register
+        return absolute_address + self.y as u16;
     }
     pub fn ind_addr(&mut self) -> u16 { 
-        9
+        // indirect mode is a pointer but similar to the absolute address mode. we just
+        // return the data behind the address like this in c: return *addr;
+        self.pc+=2;
+        let indirect_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
+        return self.mem.read(indirect_address) as u16;
     }
-    pub fn inx_addr(&mut self) -> u16 { 10 }
-    pub fn iny_addr(&mut self) -> u16 { 11 }
-    
+    pub fn inx_addr(&mut self) -> u16 { 
+        self.pc+=2;
+        let indirect_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
+        return self.mem.read(indirect_address + self.x as u16) as u16;
+    }
+    pub fn iny_addr(&mut self) -> u16 {
+        self.pc+=2;
+        let indirect_address: u16 = (self.mem.read(self.pc) << 4) as u16 & self.mem.read(self.pc-1) as u16;
+        return self.mem.read(indirect_address + self.y as u16) as u16;
+    } 
     
     // Opcode Implementations -----
     // transfer instructions
+    // these could obviously be simplified but I want 
     pub fn lda(&mut self, data: u8) { self.a = data; /*update status flag N, and Z */ }
     pub fn ldx(&mut self, data: u8) { self.x = data; /*update status flag N, and Z */ }
     pub fn ldy(&mut self, data: u8) { self.y = data; /*update status flag N, and Z */ }
     pub fn sta(&mut self, data: u16) { self.mem.write(data, self.a); }
     pub fn stx(&mut self, data: u16) { self.mem.write(data, self.x); }
     pub fn sty(&mut self, data: u16) { self.mem.write(data, self.y); }
-    pub fn tax(&mut self) { self.x = self.a; }      // update NZ
-    pub fn tay(&mut self) { self.y = self.a; }      // ""
+    pub fn tax(&mut self) { self.x  = self.a; }      // update NZ
+    pub fn tay(&mut self) { self.y  = self.a; }      // ""
     pub fn tsx(&mut self) { self.sp = self.a; }     // ""
-    pub fn txa(&mut self) { self.a = self.x; }      // ""
+    pub fn txa(&mut self) { self.a  = self.x; }      // ""
     pub fn txs(&mut self) { self.sp = self.x; }     // nah
-    pub fn tya(&mut self) { self.y = self.x; }      // ""
+    pub fn tya(&mut self) { self.y  = self.x; }      // ""
 
     // stack instructions
     pub fn pha(&mut self){ self.mem.write(STACK_HI_ADDR & self.sp as u16, self.a); self.sp+=1;}
@@ -157,7 +174,8 @@ impl Cpu {
     pub fn iny(&mut self){ self.y += 1; }
 
     // arithmetic operations
-    pub fn adc(&mut self){} // NZCV
+    pub fn adc(&mut self, data: u8){ 
+    } // NZCV
     pub fn sbc(&mut self){} // NZCV
 
     // logical operators
